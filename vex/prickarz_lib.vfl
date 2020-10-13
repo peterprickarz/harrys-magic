@@ -1,0 +1,206 @@
+//simple prints to avoid having to type %g\n every time
+void print(int num){
+    printf("%g\n",num);
+}
+void print(float num){
+    printf("%g\n",num);
+}
+void print(int arr[]){
+    printf("%g\n",arr);
+}
+void print(float arr[]){
+    printf("%g\n",arr);
+}
+void print(string str){
+    printf("%g\n",str);
+}
+void print(vector v3){
+    printf("%g\n",v3);
+}
+
+int test(int num){
+    return num*2;
+}
+//is_in_array returns the index at which num is in arr, or -1 if it can't be found
+int is_in_array(int num;int arr[]){
+    for(int i=0;i<len(arr);i++){
+        if(num==arr[i]){
+            return i;
+        }
+    }
+    return -1;
+}
+int is_in_array(float num;float arr[]){
+    for(int i=0;i<len(arr);i++){
+        if(num==arr[i]){
+            return i;
+        }
+    }
+    return -1;
+}
+int is_in_array(vector v3;vector arr[]){
+    for(int i=0;i<len(arr);i++){
+        if(v3==arr[i]){
+            return i;
+        }
+    }
+    return -1;
+}
+int is_in_array(string str;string arr[]){
+    for(int i=0;i<len(arr);i++){
+        if(str==arr[i]){
+            return i;
+        }
+    }
+    return -1;
+}
+
+function int[] astar(int geo,start_pt, end_pt;float slope_multi,curve_multi;string neighs_attr){
+
+
+    int path[];
+
+    int open_list[],open_list_prev[],closed_list[],closed_list_prev[];
+    float open_list_g[],open_list_f[],closed_list_g[],closed_list_f[];
+
+    vector end_pt_pos = point(geo,"P",end_pt);
+    vector start_pt_pos = point(geo,"P",start_pt);
+
+    float h = distance(start_pt_pos,end_pt_pos);
+    
+    append(open_list,start_pt);
+    append(open_list_prev,-1);
+    append(open_list_g,0);
+    append(open_list_f,h);
+
+    int finished = 0;
+
+    int iter = 0;
+    
+
+    while(finished==0){ 
+        iter += 1;
+        
+        
+        int curr_pt = open_list[0];
+        int prev_pt = open_list_prev[0];
+        float g = open_list_g[0];
+        float f = open_list_f[0];
+        vector curr_pos = point(geo,"P",curr_pt);
+        removeindex(open_list,0);
+        removeindex(open_list_f,0);
+        removeindex(open_list_g,0);
+        removeindex(open_list_prev,0);
+        append(closed_list,curr_pt);
+        append(closed_list_prev,prev_pt);
+        append(closed_list_g,g);
+        append(closed_list_f,f);
+
+
+        int neighs[] = point(geo,neighs_attr,curr_pt);
+
+
+        for(int a=0;a<len(neighs);a++){
+            int new_pt = neighs[a];
+
+            
+
+            //if pt is already in closed list, this pt can be skipped
+            int in_arr = is_in_array(new_pt,closed_list);
+            if(in_arr!=-1){
+                continue;
+            }
+
+
+            //calculate h(estimation of cost to end pt)
+            h = distance(end_pt_pos,point(geo,"P",new_pt));
+            
+
+            vector to_new = point(geo,"P",new_pt)-curr_pos;
+            vector to_new_flat = set(to_new.x,0,to_new.y);
+            vector to_curr = curr_pos-point(geo,"P",prev_pt);
+
+            float g_add = distance(curr_pos,point(geo,"P",new_pt));
+
+            float curve = acos(dot(normalize(to_curr),normalize(to_new)));
+            curve *= curve_multi;
+
+            float slope = acos(dot(normalize(to_new),normalize(to_new_flat)));
+            slope = pow(slope,2);
+            slope *= slope_multi;
+            
+            slope *= g_add; 
+
+
+
+
+            g_add += slope;
+            g_add += curve;
+            //new g is g of prev pt plus cost to new pt
+            float g_new = g + g_add;
+            f = g_new+h;
+            prev_pt = curr_pt;
+
+            //if pt is already in open list and has a smaller f there than currently, this can be skipped. If not, remove open list entry
+            in_arr = is_in_array(new_pt,open_list);
+            if(in_arr!=-1){
+                
+                if(open_list_f[in_arr]<f){
+                    continue;
+                }else{
+                    removeindex(open_list,in_arr);
+                    removeindex(open_list_f,in_arr);
+                    removeindex(open_list_g,in_arr);
+                    removeindex(open_list_prev,in_arr);
+                }
+            }
+            
+            //finds the correct spot for pt to go in the open list
+            int insert_index = 0;
+            int found = 0;
+            for(int b = 0;b<len(open_list_f);b++){
+                if(f<open_list_f[b]){
+                    insert_index = b;
+                    found = 1;
+                    break;
+                }
+            }
+            if(insert_index==0&&len(open_list_f)!=0&&found==0){
+                insert_index = len(open_list_f);
+            }
+            
+            //insert index is now defined, pt gets inserted in the open list
+            insert(open_list,insert_index,new_pt);
+            insert(open_list_f,insert_index,f);
+            insert(open_list_g,insert_index,g_new);
+            insert(open_list_prev,insert_index,prev_pt);
+        }
+        int end_closed = -1;
+        if(curr_pt==end_pt){
+            end_closed = is_in_array(end_pt,closed_list);
+        }
+        
+        if(end_closed!=-1){
+            if(open_list_f[0]>closed_list_f[end_closed]||len(open_list)==0){
+                
+                int looking_for = end_pt;
+                for(int a = len(closed_list)-1;a>=0;a--){
+                    
+                    if(closed_list[a]==looking_for){
+                        
+                        append(path,looking_for);
+                        looking_for=closed_list_prev[a];
+                    }
+                }
+                
+                finished = 1;    
+            }
+        }else{
+            if(len(open_list)==0){
+                finished = 1;
+            }
+        }
+    }
+    return path;
+
+}
